@@ -27,7 +27,7 @@ export class AmazonHighlightsCdkStack extends cdk.Stack {
     });
 
     //lambdas
-    const getContentsLambda = new lambda.Function(this, 'DetectLambda', {
+    const getContentsLambda = new lambda.Function(this, 'getContents', {
       code: new lambda.InlineCode(fs.readFileSync('lambda/getContents.py', { encoding: 'utf-8' })),
       handler: 'index.lambda_handler',
       timeout: cdk.Duration.seconds(30),
@@ -36,7 +36,7 @@ export class AmazonHighlightsCdkStack extends cdk.Stack {
       }
     });
 
-    const getScriptLambda = new lambda.Function(this, 'DetectLambda', {
+    const getScriptLambda = new lambda.Function(this, 'getScript', {
       code: new lambda.InlineCode(fs.readFileSync('lambda/getScript.py', { encoding: 'utf-8' })),
       handler: 'index.lambda_handler',
       timeout: cdk.Duration.seconds(30),
@@ -45,7 +45,7 @@ export class AmazonHighlightsCdkStack extends cdk.Stack {
       }
     });
 
-    const getSummaryLambda = new lambda.Function(this, 'DetectLambda', {
+    const getSummaryLambda = new lambda.Function(this, 'getSummary', {
       code: new lambda.InlineCode(fs.readFileSync('lambda/getSummary.py', { encoding: 'utf-8' })),
       handler: 'index.lambda_handler',
       timeout: cdk.Duration.seconds(30),
@@ -54,7 +54,7 @@ export class AmazonHighlightsCdkStack extends cdk.Stack {
       }
     });
 
-    const putResultLambda = new lambda.Function(this, 'DetectLambda', {
+    const putResultLambda = new lambda.Function(this, 'putResult', {
       code: new lambda.InlineCode(fs.readFileSync('lambda/putResult.py', { encoding: 'utf-8' })),
       handler: 'index.lambda_handler',
       timeout: cdk.Duration.seconds(30),
@@ -63,7 +63,7 @@ export class AmazonHighlightsCdkStack extends cdk.Stack {
       }
     });
 
-    const sendEmailLambda = new lambda.Function(this, 'DetectLambda', {
+    const sendEmailLambda = new lambda.Function(this, 'sendEmail', {
       code: new lambda.InlineCode(fs.readFileSync('lambda/sendEmail.py', { encoding: 'utf-8' })),
       handler: 'index.lambda_handler',
       timeout: cdk.Duration.seconds(30),
@@ -100,7 +100,7 @@ export class AmazonHighlightsCdkStack extends cdk.Stack {
     });
 
     const startStateMachineLambda = new lambda.Function(this, 'startLambda', {
-      code: new lambda.InlineCode(fs.readFileSync('lambda/DetectAnomaliesFunction/startStateMachineExecution.py', { encoding: 'utf-8' })),
+      code: new lambda.InlineCode(fs.readFileSync('lambda/startStateMachine.py', { encoding: 'utf-8' })),
       handler: 'index.lambda_handler',
       timeout: cdk.Duration.seconds(30),
       runtime: lambda.Runtime.PYTHON_3_9,
