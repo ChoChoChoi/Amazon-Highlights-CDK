@@ -71,8 +71,9 @@ export class AmazonHighlightsCdkStack extends cdk.Stack {
       }
     });
 
+    //event trigger - weekly basis
     const rule = new events.Rule(this, 'rule', {
-      schedule: events.Schedule.rate(cdk.Duration.days(14)),
+      schedule: events.Schedule.rate(cdk.Duration.days(7)),
     });
     
     rule.addTarget(new targets.LambdaFunction(getContentsLambda, {
