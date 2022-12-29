@@ -11,6 +11,7 @@ import * as s3n from "aws-cdk-lib/aws-s3-notifications";
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
 import * as events from 'aws-cdk-lib/aws-events';
+import { Condition } from 'aws-cdk-lib/aws-stepfunctions';
 
 
 export class AmazonHighlightsCdkStack extends cdk.Stack {
@@ -83,20 +84,20 @@ export class AmazonHighlightsCdkStack extends cdk.Stack {
 
 
     //step function definition
-    const getScript = new tasks.LambdaInvoke(this, 'detectAnomaliesLambda', { lambdaFunction: getScriptLambda, outputPath: '$.Payload' });
-    const getSummary = new tasks.LambdaInvoke(this, 'ClassifyDefects', { lambdaFunction: getSummaryLambda, outputPath: '$.Payload' });
-    const putResult = new tasks.LambdaInvoke(this, 'putResult', { lambdaFunction: putResultLambda, outputPath: '$.Payload' });
+    const getScript = new tasks.LambdaInvoke(this, 'getScriptLambda', { lambdaFunction: getScriptLambda, outputPath: '$.Payload' });
+    const getSummary = new tasks.LambdaInvoke(this, 'getSummaryLambda', { lambdaFunction: getSummaryLambda, outputPath: '$.Payload' });
+    const putResult = new tasks.LambdaInvoke(this, 'putResultLambda', { lambdaFunction: putResultLambda, outputPath: '$.Payload' });
 
     //create chain
-    // const choice = new sfn.Choice(this,'IsAnomaly?');
-    // const skip = new sfn.Pass(this, 'pass');
-    // choice.when(sfn.Condition.booleanEquals('$.DetectAnomalyResult.IsAnomalous',true), classifyDefects);
-    // choice.when(sfn.Condition.booleanEquals('$.DetectAnomalyResult.IsAnomalous',false), skip);
-    // choice.afterwards().next(putResult);
-    // const definition = DetectAnomalies.next(choice);
+    const fail = new sfn.Fail(this, "fail");
+    const chain = sfn.Chain.start(getScript)
+    .next(getSummary)
+    .next(putResult);
 
     //create state machine
-    const stateMachine = new sfn.StateMachine(this, 'stateMachine', {definition, timeout: cdk.Duration.minutes(5)});
+    const stateMachine = new sfn.StateMachine(this, 'StateMachine', {
+      definition: chain,
+    });
 
     const startStateMachineLambda = new lambda.Function(this, 'startLambda', {
       code: new lambda.InlineCode(fs.readFileSync('lambda/DetectAnomaliesFunction/startStateMachineExecution.py', { encoding: 'utf-8' })),
@@ -107,6 +108,40 @@ export class AmazonHighlightsCdkStack extends cdk.Stack {
         STATE_MACHINE_ARN : stateMachine.stateMachineArn
       }
     });
+
+    //state machine trigger
+    contentsBucket.addEventNotification(s3.EventType.OBJECT_CREATED, new s3n.LambdaDestination(startStateMachineLambda));
     
+    //state machine execution role
+    getScriptLambda.grantInvoke(stateMachine.role);
+    getSummaryLambda.grantInvoke(stateMachine.role);
+    putResultLambda.grantInvoke(stateMachine.role);
+    stateMachine.grantStartExecution(startStateMachineLambda);
+    
+    //lambda iam role set
+    getScriptLambda.addToRolePolicy(    
+      new iam.PolicyStatement({
+      actions: ["transcribe:*"],
+      resources: ["*"]
+    }));
+
+    getSummaryLambda.addToRolePolicy(    
+      new iam.PolicyStatement({
+      actions: ["sagemaker:*"],
+      resources: ["*"]
+    }));
+    
+    putResultLambda.addToRolePolicy(    
+      new iam.PolicyStatement({
+      actions: ["dynamodb:*"],
+      resources: ["*"]
+    }));
+
+    //resource iam role set
+    contentsTable.grantReadWriteData(putResultLambda);
+    contentsBucket.grantReadWrite(getContentsLambda);
+    contentsBucket.grantReadWrite(startStateMachineLambda);
+    contentsBucket.grantReadWrite(getScriptLambda);
+    contentsBucket.grantReadWrite(getSummaryLambda);
   }
 }
