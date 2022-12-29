@@ -9,6 +9,9 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import * as s3n from "aws-cdk-lib/aws-s3-notifications";
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
+import * as targets from 'aws-cdk-lib/aws-events-targets';
+import * as events from 'aws-cdk-lib/aws-events';
+
 
 export class AmazonHighlightsCdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -16,6 +19,11 @@ export class AmazonHighlightsCdkStack extends cdk.Stack {
 
     //bucket for storing contents
     const contentsBucket = new s3.Bucket(this, "contentsBucket");
+
+    //dynamoDB for storing results
+    const contentsTable = new dynamodb.Table(this, 'contents', {
+      partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING }, 
+    });
 
     //lambdas
     const getContentsLambda = new lambda.Function(this, 'DetectLambda', {
@@ -62,6 +70,16 @@ export class AmazonHighlightsCdkStack extends cdk.Stack {
       environment: {
       }
     });
+
+    const rule = new events.Rule(this, 'rule', {
+      schedule: events.Schedule.rate(cdk.Duration.days(14)),
+    });
+    
+    rule.addTarget(new targets.LambdaFunction(getContentsLambda, {
+      maxEventAge: cdk.Duration.hours(2), // Optional: set the maxEventAge retry policy
+      retryAttempts: 2, // Optional: set the max number of retry attempts
+    }));
+
 
     //step function definition
     const getScript = new tasks.LambdaInvoke(this, 'detectAnomaliesLambda', { lambdaFunction: getScriptLambda, outputPath: '$.Payload' });
