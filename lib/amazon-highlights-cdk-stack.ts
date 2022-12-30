@@ -67,7 +67,7 @@ export class AmazonHighlightsCdkStack extends cdk.Stack {
       code: new lambda.InlineCode(fs.readFileSync('lambda/sendEmail.py', { encoding: 'utf-8' })),
       handler: 'index.lambda_handler',
       timeout: cdk.Duration.seconds(30),
-      runtime: lambda.Runtime.PYTHON_3_9,
+      runtime: lambda.Runtime.NODEJS_16_X,
       environment: {
       }
     });
@@ -78,6 +78,11 @@ export class AmazonHighlightsCdkStack extends cdk.Stack {
     });
     
     rule.addTarget(new targets.LambdaFunction(getContentsLambda, {
+      maxEventAge: cdk.Duration.hours(2), // Optional: set the maxEventAge retry policy
+      retryAttempts: 2, // Optional: set the max number of retry attempts
+    }));
+
+    rule.addTarget(new targets.LambdaFunction(sendEmailLambda, {
       maxEventAge: cdk.Duration.hours(2), // Optional: set the maxEventAge retry policy
       retryAttempts: 2, // Optional: set the max number of retry attempts
     }));
@@ -134,6 +139,12 @@ export class AmazonHighlightsCdkStack extends cdk.Stack {
     putResultLambda.addToRolePolicy(    
       new iam.PolicyStatement({
       actions: ["dynamodb:*"],
+      resources: ["*"]
+    }));
+
+    sendEmailLambda.addToRolePolicy(    
+      new iam.PolicyStatement({
+      actions: ["ses:*"],
       resources: ["*"]
     }));
 
