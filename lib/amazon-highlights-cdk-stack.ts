@@ -33,6 +33,7 @@ export class AmazonHighlightsCdkStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(30),
       runtime: lambda.Runtime.PYTHON_3_9,
       environment: {
+        BUCKET_ARN: contentsBucket.bucketArn
       }
     });
 

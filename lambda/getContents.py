@@ -9,10 +9,10 @@ import os
 # Initiate clients
 rekognition = boto3.client('rekognition')
 s3 = boto3.client('s3')
-PROJECT_ARN = os.environ['PROJECT_ARN']
+BUCKET_ARN = os.environ['BUCKET_ARN']
 
 print('Loading function')
-print(PROJECT_ARN)
+print(BUCKET_ARN)
 
 # --------------- Main handler ------------------
 
