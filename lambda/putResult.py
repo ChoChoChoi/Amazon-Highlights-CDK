@@ -1,46 +1,35 @@
 import boto3
-from decimal import Decimal
 import json
-import urllib.request
-import urllib.parse
-import urllib.error
 import os
+import urllib.request
+import datetime
+from decimal import Decimal
+
+DYNAMODB_TABLE_NAME = os.environ['DYNAMODB_TABLE_NAME']
+REGION = os.environ['REGION']
 
 # Initiate clients
-rekognition = boto3.client('rekognition')
-s3 = boto3.client('s3')
-PROJECT_ARN = os.environ['PROJECT_ARN']
-
-print('Loading function')
-print(PROJECT_ARN)
-
-# --------------- Main handler ------------------
+dynamodb = boto3.resource('dynamodb', region_name=REGION)
 
 def lambda_handler(event, context):
 
-    # Get the object from the event
-    bucket = event['Bucket']
-    key = event['Key']
+    payload = event
+    timestamp = datetime.datetime.now().isoformat()
+
+    table = dynamodb.Table(DYNAMODB_TABLE_NAME)
+
+    item = {}
+    
+    item['DateTime'] = timestamp
+    item['title'] = payload['title']
+    item['tag'] = payload['tag']
+    item['link'] = payload['link']
+
     try:
-        # Calls rekognition DetectLabels API to detect labels in S3 object
-        response = getContents(bucket, key)
+        # write the record to the database
+        response = table.put_item(Item=item)
         return response
 
     except Exception as e:
-
-        print(e)
-        raise e
-
-# --------------- Helper Functions to call Rekognition APIs ------------------
-
-def getContents(bucket, key):
-
-    try:
-        response = s3.get_object(Bucket=bucket, Key=key)
-
-        return response
-
-    except Exception as e:
-
         print(e)
         raise e
